@@ -50,7 +50,7 @@ python3 -m venv .venv
 `run_fuzzy.py` is resume-safe: completed runs are skipped, so re-running the
 same command continues an interrupted sweep. Select any subset with
 `--ontologies`, `--seeds`, `--dims` (e.g. `--ontologies oeo,doid --seeds
-42,4 --dims 2,6,10`). The Jupyter notebook (`fuzzy_model.ipynb`) are the interactive
+42,4 --dims 2,6,10`). The Jupyter notebook (`fuzzy_model.ipynb`) is the interactive
 development and analysis sources.
 
 ## Results (final baseline, seed 42)
@@ -67,12 +67,7 @@ closure), from `results_fuzzy_entailed/`:
 
 Multi-seed robustness: the same final config on seeds {4, 666, 1010} over CIM
 and OEO (dims ≤ 15), DOID (dims 2–11) and GO (dims 2, 6) — mean ± std rows
-are emitted by `scripts/generate_numbers.py`. Known per-seed variance (e.g.
-OEO d6 disjoint ≈ 5 % at seed 1010) is reported in the paper's robustness
-narrative. The loss-term ablation (`scripts/run_ablation.py`) shows subclass
-and disjoint terms are load-bearing while the volume regularisers are
-marginal at the DOID d4 optimum — but the contact tail itself is load-bearing
-at GO scale.
+are emitted by `generate_numbers.py`.
 
 ## Repository layout
 
@@ -81,7 +76,7 @@ run_fuzzy.py                    single flexible training runner (resume-safe)
 functions.py                    core module: model, t-norms, implications, losses, loader
 fuzzy_model.ipynb               main development notebook (interactive runs + analysis)
 generate_numbers.py             analysis runner
-plots/                          figures
+plots/                          figures, created on run
 EXPERIMENT_SETUP.md             fixed experimental setup, ontology stats, provenance
 FORMULAS_APPENDIX.md            formal definitions of every quantity used in the paper
 data/                           OWL ontologies — see data/README.md for sources
