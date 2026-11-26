@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 """Single flexible training runner for the fuzzy box-embedding repo.
 
-The Jupyter notebooks (`fuzzy_model.ipynb`, `fuzzy_operators.ipynb`) are the
-main source for experiments and analysis; this script is the background
-launcher for long sweeps that must survive a closed laptop. One runner,
-fully parameterised — no file edits per run:
+The Jupyter notebook (`fuzzy_model.ipynb`) is the main source for experiments and analysis;
+this script is the background launcher for long sweeps that must survive a closed laptop.
 
     .venv/bin/python run_fuzzy.py --dry-run                          # show the plan
     .venv/bin/python run_fuzzy.py --ontologies oeo,doid --seeds 42,4 --dims 2,4,6
     .venv/bin/python run_fuzzy.py --dims 2-30                        # even ladder
     .venv/bin/python run_fuzzy.py --dims all --ontologies all        # default matrix
-    .venv/bin/python run_fuzzy.py --t-norm minimum --implication godel \
-                            --results-dir results_operators    # Ch. 5 operator pair
     .venv/bin/python run_fuzzy.py --ontologies go --dims 25,30       # GO high-dim tail
 
 Defaults: ontologies all, seeds 42, dims the paper ladder
-{2,4,6,8,10,15,20,25,30}, final Ch. 4 config (product t-norm · Reichenbach
+{2,4,6,8,10,15,20,25,30}, final config (product t-norm · Reichenbach
 implication, sub 2.0 / disj 2.0 / contact 0.1 on the ENTAILED closure, no
 sibling, PLAIN, 5k steps, tau 0.1 fixed). Resume-safe: `is_done` skips anything
 already completed, so re-running the same command continues an interrupted sweep.
@@ -80,7 +76,7 @@ def make_cfg(dim, seed, t_norm, implication, steps):
         disjoint_weight=2.0,
         contact_weight=0.1,
         contact_on_entailed=True,  # final config: crisp tail over the ENTAILED closure
-        distance_weight=0.0,  # no sibling term (Ch. 4 final config)
+        distance_weight=0.0,  # no sibling term
     )
 
 
