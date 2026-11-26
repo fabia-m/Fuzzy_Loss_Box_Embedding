@@ -50,9 +50,7 @@ python3 -m venv .venv
 `run_fuzzy.py` is resume-safe: completed runs are skipped, so re-running the
 same command continues an interrupted sweep. Select any subset with
 `--ontologies`, `--seeds`, `--dims` (e.g. `--ontologies oeo,doid --seeds
-42,4 --dims 2,6,10`); `--t-norm`/`--implication`/`--results-dir` reach the
-operator study (`results_operators/`). The Jupyter notebook
-(`fuzzy_model.ipynb`) are the interactive
+42,4 --dims 2,6,10`). The Jupyter notebook (`fuzzy_model.ipynb`) are the interactive
 development and analysis sources.
 
 ## Results (final baseline, seed 42)
