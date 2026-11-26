@@ -362,7 +362,7 @@ class OntologyEdges:
         Processes edges in batches to bound memory usage.
 
         When ``cfg.contact_weight > 0``, a crisp margin-tail term is added
-        (penalty-style arbitration, Ch. 2): ``contact_weight *
+        (penalty-style arbitration): ``contact_weight *
         softplus(margin - sep)`` with ``sep`` the max-over-dims crisp
         separation and ``margin = 0.02`` matching the evaluation margin.
         The fuzzy overlap tail dies at ~3*tau, so the soft overlap gradient
@@ -408,16 +408,7 @@ class OntologyEdges:
             mn, mx = model.get_min_max()
             # Contact tail acts on ASSERTED disjoint pairs only: the entailed
             # set would multiply the shove through descendant boxes (~6 pairs
-            # per box on OEO) and break containment. The asserted level is
-            # where the sibling tug lives (OEO 55/60, DOID 1269/1428 disjoint
-            # pairs are also siblings) and matches the penalty baseline.
-            # Contact tail pair set: asserted (default, load-bearing arbitration at
-            # the sibling-tug level) vs entailed (opt-in, probe round 4). Round 1
-            # showed the entailed shove is proportional to pairs-per-box (OEO 5.89,
-            # DOID 0.63, GO 1.12 entailed pairs/box) and collapsed OEO containment
-            # at w 0.5/1.0; round 4 retests at w 0.1/0.25 under sub 2.0 (twice
-            # round-1's holding force) because the DOID basin's violated pairs are
-            # all entailed, so the asserted-only tail never engages there.
+            # per box on OEO) and break containment.
             if getattr(cfg, "contact_on_entailed", False):
                 contact_src = self.entailed_disjoint_edges
             else:
@@ -450,14 +441,6 @@ class OntologyEdges:
         Two-sided, mirrors the penalty-based oversize loss: penalises both
         overshooting the depth-scaled target AND undershooting min_log_volume
         (prevents box collapse). Uses fuzzy cardinality instead of crisp volumes.
-
-        NOTE (2026-10-07, FINAL): a fuzzy-upper variant (`1 - sigmoid((target -
-        log_card)/tau)`, Option 3, tau=0.5) was probed TWICE and REJECTED both
-        times — with the fuzzy sibling (OEO disj 1.11 -> 6.88, s42) and without
-        it (OEO 4-seed mean disj 2.35 vs 1.49, log_volume p90 ~1.7 vs ~0.85;
-        see probe/scripts/probe_oversize*.py, probe/oversize/ and
-        probe/ovf_nosib/). The sigmoid relaxes shrink pressure and
-        never wins a metric; the crisp two-sided softplus stays.
         """
         log_card = model.fuzzy_cardinality()
         depths = self.class_depths
@@ -473,22 +456,8 @@ class OntologyEdges:
     def distance_loss(self, model: 'FuzzyBoxEmbedding', batch_size: int = 512) -> torch.Tensor:
         """Fuzzy sibling distance loss (penalise gaps between sibling boxes).
 
-        Pulls siblings together: penalises separation while overlapping or
-        touching pairs cost (almost) nothing. The gap is the fuzzy
-        non-overlap degree ``1 - overlap_degree(a,b)``: 0 = fully
-        overlapping, -> 1 = fully separated, bounded in [0,1] and
-        interpretable as dissatisfaction of "siblings share the parent
-        region". The pull is local: the overlap tail dies at a crisp gap of
-        ~3*tau, so well-separated pairs get ~no gradient.
-
-        Do NOT write ``softplus(overlap_degree)`` or bare ``overlap_degree``
-        here — that silently flips into apart-pushing (the original bug,
-        see retrain_sibling_fix.py). The former crisp ``softplus(gap)``
-        variant was removed 2026-10-07: its long-range tug fought the
-        disjointness term on sibling-disjoint pairs (baseline OEO d2 disjoint
-        floor 6.75%); the fuzzy gap drops it to ~1% (probe, seed 42).
-
-        Processes edges in batches to bound memory usage.
+        Pulls siblings together, removed
+        
         """
         if self.sibling_edges is None or self.sibling_edges.numel() == 0:
             return torch.tensor(0.0, device=model.center.device)
@@ -509,7 +478,7 @@ class FuzzyBoxConfig:
     """Configuration for fuzzy box embeddings. Same as for penalty models."""
     dim: int = 6
     steps: int = 5000  # Reduced from 10k — plateau reached by 5k
-    lr: float = 0.05  # FIXED: optimal from LR sweep
+    lr: float = 0.05
     seed: int = 42
     membership_type: str = "sigmoidal"
     t_norm: str = "product"
@@ -518,23 +487,20 @@ class FuzzyBoxConfig:
     init_temperature: float = 0.1 # FIXED
     min_box_size: float = 0.05
     size_weight: float = 0.1
-    subclass_weight: float = 2.0  # final probe-chosen config (round 3 config C, 2026-09/10): sub 2.0 viable only WITH the contact tail
+    subclass_weight: float = 2.0
     disjoint_weight: float = 2.0  # soft overlap penalty needs higher disjoint pressure than margin-based
-    contact_weight: float = 0.5  # crisp margin-tail on disjointness (penalty-style arbitration), asserted pairs only; final config value
-    contact_on_entailed: bool = False  # probe round 4: run the tail over ENTAILED disjoint pairs (opt-in; default = asserted, final config)
+    contact_weight: float = 0.5  # crisp margin-tail on disjointness
+    contact_on_entailed: bool = False
     big_box_weight: float = 0.1
-    distance_weight: float = 0.0  # sibling term DROPPED by probe 2026-10-07 (see Pitfall 12); set >0 only for ablation
+    distance_weight: float = 0.0  # sibling term DROPPED
     base_log_volume: float = 2.0
     depth_scale: float = 0.5
     min_log_volume: float = -4.0
     
     def __post_init__(self):
-        pass  # lr is fixed at 0.05 (optimal from LR sweep)
+        pass  # lr is fixed at 0.05
 def cfg_run_name(cfg: 'FuzzyBoxConfig') -> str:
     """Uniform run-name for save dirs: {t_norm}_{implication}_{learn|fix}tau{temp}.
-
-    Used by both the notebook sweep and the sweep runners so that all
-    result paths share the same convention: results/{ontology}/{run_name}/dim_{N}.
     """
     suffix = "learn" if cfg.learn_temperature else "fix"
     return f"{cfg.t_norm}_{cfg.implication}"
@@ -542,8 +508,7 @@ def cfg_run_name(cfg: 'FuzzyBoxConfig') -> str:
 
 def run_dir_name(cfg: 'FuzzyBoxConfig', seed: int) -> str:
     """Uniform result dir name: base run name for the default seed (42),
-    suffixed with _seed{N} for any other seed. Keeps seed-42 runs in the
-    canonical dir so loaders/summaries work unchanged."""
+    suffixed with _seed{N} for any other seed. """
     base = cfg_run_name(cfg)
     return base if seed == 42 else f"{base}_seed{seed}"
 
@@ -554,7 +519,7 @@ def is_done(onto: str, seed: int, dim: int, results_dir: str = "results",
 
     Valid = metrics.json exists with a real (non-None) train_time_seconds AND
     config.json matches the current weights (sub 2.0 / disj 2.0 / contact 0.5 / no sibling). A run with a
-    None timestamp (e.g. the GO dim-6 timer anomaly) or stale weights is
+    None timestamp or stale weights is
     treated as not-done so a resume re-trains it."""
     from pathlib import Path as _Path
     if cfg is None:
@@ -839,7 +804,6 @@ class FuzzyMembership:
 
 # ── Predefined curriculum schedules ────────────────────────────────────────
 # Reusable schedule configurations for common experimental conditions.
-# Access via: from functions import SCHEDULES; sched = SCHEDULES["early"]
 
 SCHEDULES = {
     "plain": CurriculumSchedule(
@@ -936,7 +900,7 @@ def evaluate_fuzzy_satisfaction(
     model: FuzzyBoxEmbedding,
     edges: OntologyEdges,
     cfg: FuzzyBoxConfig,
-    disjoint_margin: float = 0.02,  # matches penalty baseline (Ch. 2) and closure check
+    disjoint_margin: float = 0.02,
 ) -> dict:
     """Evaluate fuzzy embeddings using satisfaction degrees.
     
@@ -1113,12 +1077,12 @@ def learn_fuzzy_boxes(
             - training_curve: list of (step, loss) tuples if save_training_curve=True
             - train_time: total training time in seconds
     """
-    schedule = None #FIXED
+    schedule = None
     
     device = device or "mps"
     if steps is None:
         steps = cfg.steps
-    # Ensure lr is computed (for type checker when lr=None default)
+    # Ensure lr is computed
     if cfg.lr is None:
         cfg.lr = 0.1 / math.sqrt(cfg.dim)
     
@@ -1214,7 +1178,6 @@ def _train_one_dim(args: tuple) -> tuple[int, dict]:
     
     if len(result) == 4:
         model, df, edges, info = result
-        # Handle both old float and new dict format
         if isinstance(info, dict):
             loss = info.get("loss")
             training_curve = info.get("training_curve")
@@ -1242,7 +1205,7 @@ def _train_one_dim(args: tuple) -> tuple[int, dict]:
         "model": model,
         "df": df,
         "edges": edges,
-        "cfg": cfg,  # per-dimension cfg actually trained with (dim is correct here)
+        "cfg": cfg,
         "loss": loss,
         "train_time": train_time_actual,
         "training_curve": training_curve,
@@ -1375,7 +1338,7 @@ def sweep_dimensions(
             "run_name": os.path.basename(os.path.normpath(path)),
             "ontology": os.path.basename(os.path.dirname(os.path.normpath(path))),
             "owl_path": owl_path,  # Full path for reproducibility
-            "owl_file_sha256": info.get("owl_sha256"),  # First 16 chars of SHA256
+            "owl_file_sha256": info.get("owl_sha256"),
             "dimension": dim,
             "variant": "plain" if schedule is None else "curriculum",
             "steps": steps if steps is not None else (cfg.steps if cfg else 3000),
@@ -1426,8 +1389,7 @@ def sweep_dimensions(
             else None,
         }
 
-        # ---- Chapter 7 data: per-axiom satisfaction degrees + calibration pairs ----
-        # (ECE / reliability-diagram material; ~5 min overhead per run, no retraining needed later)
+
         ch7_files = {}
         if edges is not None:
             import csv as _csv
@@ -1550,7 +1512,6 @@ def sweep_dimensions(
         results[d] = result
         _save_single(d, result)
         
-        # Rich output matching pilot_results format
         print(f"\nResults ({elapsed_dim:.1f}s):")
         if schedule is not None:
             print(f"  Schedule: disjoint_start={schedule.disjoint_start*100:.1f}%, subclass_start={schedule.subclass_start*100:.1f}%, sibling_start={schedule.sibling_start*100:.1f}%")
@@ -1584,9 +1545,6 @@ def fast_load_sweep_results(path, load_per_axiom=False):
     """Fast-load sweep results by extracting only metrics.json files.
     
     Skips model loading entirely — returns just the metrics dictionaries.
-    Much faster than load_sweep_results() when you only need metrics for analysis.
-    
-    Now also loads config.json, schedule.json, and training_curve.json when available.
     
     Args:
         path: Base directory containing dim_* subdirectories with metrics.json
@@ -1627,14 +1585,14 @@ def fast_load_sweep_results(path, load_per_axiom=False):
             else:
                 result_entry["config"] = None
             
-            # Load schedule.json (now always saved)
+            # Load schedule.json
             if os.path.exists(schedule_path):
                 with open(schedule_path, "r") as f:
                     result_entry["schedule"] = json.load(f)
             else:
                 result_entry["schedule"] = None
             
-            # Load training_curve.json (new - for paper plots)
+            # Load training_curve.json
             if os.path.exists(training_curve_path):
                 with open(training_curve_path, "r") as f:
                     result_entry["training_curve"] = json.load(f)
@@ -1651,7 +1609,7 @@ def fast_load_sweep_results(path, load_per_axiom=False):
             
             results[dim] = result_entry
         else:
-            print(f"  ⚠ No metrics.json in {d}")
+            print(f" No metrics.json in {d}")
     
     print(f"Loaded metrics for {len(results)} dimensions from {path}")
     return results
@@ -1659,8 +1617,6 @@ def fast_load_sweep_results(path, load_per_axiom=False):
 
 def load_sweep_results(path, load_models=True):
     """Load full sweep results including models.
-    
-    Now also loads config.json, schedule.json, and training_curve.json when available.
     
     Args:
         path: Base directory containing dim_* subdirectories
@@ -1693,7 +1649,7 @@ def load_sweep_results(path, load_models=True):
             with open(metrics_path, "r") as f:
                 result["metrics"] = json.load(f)
         
-        # Load config.json (new)
+        # Load config.json
         config_path = os.path.join(dim_path, "config.json")
         if os.path.exists(config_path):
             with open(config_path, "r") as f:
@@ -1701,7 +1657,7 @@ def load_sweep_results(path, load_models=True):
         else:
             result["config"] = None
         
-        # Load schedule.json (now always saved)
+        # Load schedule.json
         schedule_path = os.path.join(dim_path, "schedule.json")
         if os.path.exists(schedule_path):
             with open(schedule_path, "r") as f:
@@ -1709,7 +1665,7 @@ def load_sweep_results(path, load_models=True):
         else:
             result["schedule"] = None
         
-        # Load training_curve.json (new - for paper plots)
+        # Load training_curve.json
         training_curve_path = os.path.join(dim_path, "training_curve.json")
         if os.path.exists(training_curve_path):
             with open(training_curve_path, "r") as f:
