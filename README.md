@@ -1,7 +1,7 @@
 # Fuzzy Learning for Box Embeddings
 
 Code for the paper *"Fuzzy Learning for Box
-Embeddings"* (Martens et al.).
+Embeddings"* (Anonymous).
 
 Fuzzy-logic box embeddings for ontological knowledge representation: every
 OWL class is embedded as an axis-aligned box (centre μ, softplus half-size h)
