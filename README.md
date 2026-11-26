@@ -1,6 +1,6 @@
 # Fuzzy Learning for Box Embeddings
 
-Code and experimental results for the paper *"Fuzzy Learning for Box
+Code for the paper *"Fuzzy Learning for Box
 Embeddings"* (Martens et al.).
 
 Fuzzy-logic box embeddings for ontological knowledge representation: every
@@ -22,10 +22,6 @@ interpretable as graded truth (satisfaction) degrees in [0, 1].
   basin cells at negligible containment cost.
 - **No sibling term.** The sibling loss was probed and removed on evidence
   (it degrades OBO-style ontologies); the code supports it for ablation only.
-- **Operator study support:** the t-norm × implication matrix runs in-repo via
-  `fuzzy_operators.ipynb` → `results_operators/` (minimum–gödel,
-  product–goguen, lukasiewicz–lukasiewicz plus the adopted
-  product–reichenbach anchor).
 
 ## Reproducing the reported results
 
@@ -48,16 +44,15 @@ python3 -m venv .venv
 # download the ontologies — see data/README.md
 .venv/bin/python run_fuzzy.py --dry-run            # show the full 104-run plan
 .venv/bin/python run_fuzzy.py                       # everything pending (resume-safe)
-.venv/bin/python scripts/generate_numbers.py        # summary_all.tsv + paper-table rows
-.venv/bin/python scripts/plot_results.py            # paper figures (EPS; writes into _Paper_fuzzy/ by default)
+.venv/bin/python generate_numbers.py        # summary_all.tsv + paper-table rows
 ```
 
 `run_fuzzy.py` is resume-safe: completed runs are skipped, so re-running the
 same command continues an interrupted sweep. Select any subset with
 `--ontologies`, `--seeds`, `--dims` (e.g. `--ontologies oeo,doid --seeds
 42,4 --dims 2,6,10`); `--t-norm`/`--implication`/`--results-dir` reach the
-operator study (`results_operators/`). The Jupyter notebooks
-(`fuzzy_model.ipynb`, `fuzzy_operators.ipynb`) are the interactive
+operator study (`results_operators/`). The Jupyter notebook
+(`fuzzy_model.ipynb`) are the interactive
 development and analysis sources.
 
 ## Results (final baseline, seed 42)
