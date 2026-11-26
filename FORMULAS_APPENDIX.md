@@ -1,6 +1,6 @@
 # Formal Definitions — Fuzzy Box-Embedding Framework
 
-Companion to the paper *"Fuzzy Learning for Box Embeddings"* (Martens et al.).
+Companion to the paper *"Fuzzy Learning for Box Embeddings"* (Anonymous).
 
 **Configuration used for all reported results (final, Nov 2026):** product
 t-norm, Reichenbach implication, fixed temperature $\tau = 0.1$, learning
