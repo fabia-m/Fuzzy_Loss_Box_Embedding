@@ -6,11 +6,6 @@ Emits:
   3. Robustness rows        -- multi-seed mean+/-std and median (LaTeX), for dims with all 4 seeds
   4. Basin / spike cells    -- DOID basin (d10) and OEO spike annotations
 
-Reads ANY run-name directory (Ch. 4 `product_reichenbach*` or Ch. 5 operator
-pairs `{t_norm}_{implication}`), so it serves both chapters:
-
-Usage: .venv/bin/python scripts/generate_numbers.py
-       .venv/bin/python scripts/generate_numbers.py --results-dir results_operators
 """
 import argparse
 import glob
@@ -104,7 +99,7 @@ def main():
 
     # ---------- 3. robustness rows (all-4-seed dims) ----------
     print("\n=== ROBUSTNESS (LaTeX) ===")
-    TABLE_DIMS = [2, 4, 6, 8, 10, 15]  # paper table columns (tab:robustness)
+    TABLE_DIMS = [2, 4, 6, 8, 10, 15]
     for onto in ["oeo", "doid", "go"]:
         for stat, fn in [("mean±std", lambda v: f"{mean_std(v)[0]:.2f}±{mean_std(v)[1]:.2f}"),
                          ("median", lambda v: f"{st.median(v):.2f}")]:
@@ -128,7 +123,6 @@ def main():
         if v:
             m, sd = mean_std(v)
             print(f"OEO ms disj d{d}: {m:.2f}±{sd:.2f}  (cells: {[f'{x:.2f}' for x in v]})")
-    # DOID basin cells: per-seed worst disj in low-dim window
     for s in SEEDS:
         worst = None
         for d in [2, 4, 6, 8, 9, 10, 11]:
@@ -139,7 +133,7 @@ def main():
                     worst = (d, v)
         if worst:
             print(f"DOID s{s} basin: d{worst[0]} {worst[1]:.2f}%")
-    # DOID ms disj at d2/d6/d10 for the "median 0.00%" claim
+
     for d in [2, 6, 10]:
         v = [disj_pct(rows[("doid", s, d)]) for s in SEEDS]
         print(f"DOID ms disj d{d}: cells {[f'{x:.2f}' for x in v]}  median {st.median(v):.2f}")
