@@ -815,7 +815,7 @@ SCHEDULES = {
     ),
     "early": CurriculumSchedule(
         subclass_start=0.0,
-        disjoint_start=0.01,  # 1% — Ch. 2 optimal
+        disjoint_start=0.01,  # 1%
         sibling_start=0.5,
         big_box_start=0.7,
         ramp=False,
